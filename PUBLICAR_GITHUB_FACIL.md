@@ -211,3 +211,4 @@ Sua URL pública será: `https://SEU_USUARIO.github.io/jira-clone/`
 
 Para facilitar atualizações futuras, considere instalar o **GitHub Desktop** depois. Ele torna o processo de atualização muito mais simples!
 
+

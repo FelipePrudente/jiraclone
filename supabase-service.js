@@ -124,11 +124,22 @@ async function loadProjects() {
             .order('created_at', { ascending: false });
 
         if (error) throw error;
-        return data || [];
+        return (data || []).map(mapProjectFromDB);
     } catch (error) {
         console.error('Erro ao carregar projetos:', error);
         return loadFromLocalStorage('jira-projects', []);
     }
+}
+
+function mapProjectFromDB(data) {
+    return {
+        id: data.id,
+        name: data.name,
+        key: data.key,
+        description: data.description,
+        squadId: data.squad_id,
+        createdAt: data.created_at
+    };
 }
 
 async function saveProject(project) {
@@ -172,6 +183,25 @@ async function saveProject(project) {
     } catch (error) {
         console.error('Erro ao salvar projeto:', error);
         return saveToLocalStorage('jira-projects', project);
+    }
+}
+
+async function deleteProject(projectId) {
+    if (!isSupabaseAvailable()) {
+        return deleteFromLocalStorage('jira-projects', projectId);
+    }
+
+    try {
+        const { error } = await supabaseClient
+            .from('projects')
+            .delete()
+            .eq('id', projectId);
+
+        if (error) throw error;
+        return true;
+    } catch (error) {
+        console.error('Erro ao deletar projeto:', error);
+        return false;
     }
 }
 

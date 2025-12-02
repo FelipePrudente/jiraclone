@@ -551,6 +551,30 @@ body {
     margin-bottom: 12px;
 }
 
+.project-card-header > div {
+    flex: 1;
+}
+
+.btn-delete-project {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 3px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.6;
+}
+
+.btn-delete-project:hover {
+    background-color: var(--danger);
+    color: white;
+    opacity: 1;
+}
+
 .project-card h3 {
     font-size: 18px;
     font-weight: 600;

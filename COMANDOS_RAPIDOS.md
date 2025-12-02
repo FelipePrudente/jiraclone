@@ -77,3 +77,4 @@ Sua URL pública será: `https://SEU_USUARIO.github.io/jira-clone/`
 
 Compartilhe com seus usuários! 🎉
 
+

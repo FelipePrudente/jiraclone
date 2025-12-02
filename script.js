@@ -448,8 +448,13 @@ function renderProjects() {
         return `
             <div class="project-card" data-project-id="${project.id}">
                 <div class="project-card-header">
-                    <h3>${escapeHtml(project.name)}</h3>
-                    <span class="project-key">${escapeHtml(project.key)}</span>
+                    <div>
+                        <h3>${escapeHtml(project.name)}</h3>
+                        <span class="project-key">${escapeHtml(project.key)}</span>
+                    </div>
+                    <button class="btn-delete-project" data-project-id="${project.id}" title="Excluir projeto">
+                        <i class="fas fa-trash"></i>
+                    </button>
                 </div>
                 ${project.description ? `<p class="project-description">${escapeHtml(project.description)}</p>` : ''}
                 <div class="project-stats">
@@ -462,12 +467,25 @@ function renderProjects() {
 
     // Adicionar event listeners aos cards de projeto
     document.querySelectorAll('.project-card').forEach(card => {
-        card.addEventListener('click', () => {
+        card.addEventListener('click', (e) => {
+            // Não abrir o projeto se clicar no botão de exclusão
+            if (e.target.closest('.btn-delete-project')) {
+                return;
+            }
             const projectId = card.dataset.projectId;
             state.currentProject = state.projects.find(p => p.id === projectId);
             document.getElementById('project-selector').value = projectId;
             showView('boards');
             renderBoard();
+        });
+    });
+
+    // Adicionar event listeners aos botões de exclusão
+    document.querySelectorAll('.btn-delete-project').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const projectId = btn.dataset.projectId;
+            await handleDeleteProject(projectId);
         });
     });
 }
@@ -1403,9 +1421,12 @@ function calculateActivityValue(activity, assigneeName, projectId) {
     if (!assigneeName || !projectId) return 0;
     
     const project = state.projects.find(p => p.id === projectId);
-    if (!project || !project.squadId) return 0;
+    if (!project) return 0;
     
-    const squad = state.squads.find(s => s.id === project.squadId);
+    const squadId = project.squadId || project.squad_id;
+    if (!squadId) return 0;
+    
+    const squad = state.squads.find(s => s.id === squadId);
     if (!squad) return 0;
     
     const member = squad.members.find(m => m.name === assigneeName);
@@ -1480,8 +1501,9 @@ function renderLancamentosSummary() {
             ? issue.assignee
             : 'Sem responsável';
 
-        const squad = state.currentProject.squadId
-            ? state.squads.find(s => s.id === state.currentProject.squadId)
+        const squadId = state.currentProject.squadId || state.currentProject.squad_id;
+        const squad = squadId
+            ? state.squads.find(s => s.id === squadId)
             : null;
         const member = squad ? squad.members.find(m => m.name === issue.assignee) : null;
 
@@ -1611,6 +1633,109 @@ function handleDeleteIssue() {
         renderBoard();
     } else if (state.currentView === 'backlog') {
         renderBacklog();
+    }
+}
+
+async function handleDeleteProject(projectId) {
+    const project = state.projects.find(p => p.id === projectId);
+    if (!project) return;
+    
+    // Verificar se há issues, sprints ou stages associados ao projeto
+    const projectIssues = state.issues.filter(i => i.projectId === projectId);
+    const projectSprints = state.sprints.filter(s => s.projectId === projectId);
+    const projectStages = state.stages.filter(s => s.project_id === projectId || (s.projectId && s.projectId === projectId));
+    
+    const totalItems = projectIssues.length + projectSprints.length + projectStages.length;
+    
+    if (totalItems > 0) {
+        let message = `Este projeto possui:\n`;
+        if (projectIssues.length > 0) message += `- ${projectIssues.length} tarefa(s)\n`;
+        if (projectSprints.length > 0) message += `- ${projectSprints.length} sprint(s)\n`;
+        if (projectStages.length > 0) message += `- ${projectStages.length} etapa(s)\n`;
+        message += `\nAo excluir o projeto, todos esses itens também serão excluídos. Deseja continuar?`;
+        
+        if (!confirm(message)) {
+            return;
+        }
+    } else {
+        if (!confirm(`Tem certeza que deseja excluir o projeto "${project.name}"?`)) {
+            return;
+        }
+    }
+    
+    // Excluir todas as issues do projeto
+    if (projectIssues.length > 0) {
+        for (const issue of projectIssues) {
+            await deleteIssue(issue.id);
+        }
+        // Remover do state local
+        state.issues = state.issues.filter(i => i.projectId !== projectId);
+    }
+    
+    // Excluir todas as sprints do projeto
+    if (projectSprints.length > 0) {
+        for (const sprint of projectSprints) {
+            if (isSupabaseAvailable() && typeof supabaseClient !== 'undefined') {
+                try {
+                    await supabaseClient
+                        .from('sprints')
+                        .delete()
+                        .eq('id', sprint.id);
+                } catch (error) {
+                    console.error('Erro ao excluir sprint:', error);
+                }
+            }
+        }
+        // Remover do state local
+        state.sprints = state.sprints.filter(s => s.projectId !== projectId);
+    }
+    
+    // Excluir todas as stages do projeto
+    if (projectStages.length > 0) {
+        for (const stage of projectStages) {
+            if (isSupabaseAvailable() && typeof supabaseClient !== 'undefined') {
+                try {
+                    await supabaseClient
+                        .from('stages')
+                        .delete()
+                        .eq('id', stage.id);
+                } catch (error) {
+                    console.error('Erro ao excluir stage:', error);
+                }
+            }
+        }
+        // Remover do state local
+        state.stages = state.stages.filter(s => {
+            const stageProjectId = s.project_id || s.projectId;
+            return stageProjectId !== projectId;
+        });
+    }
+    
+    // Excluir o projeto
+    const success = await deleteProject(projectId);
+    if (success) {
+        // Remover do state local
+        state.projects = state.projects.filter(p => p.id !== projectId);
+        
+        // Se o projeto excluído era o atual, limpar seleção
+        if (state.currentProject && state.currentProject.id === projectId) {
+            state.currentProject = null;
+            document.getElementById('project-selector').value = '';
+        }
+        
+        // Salvar dados
+        saveData();
+        
+        // Atualizar interface
+        renderProjects();
+        updateProjectSelector();
+        
+        // Se estiver na view de boards e o projeto foi excluído, mostrar mensagem
+        if (state.currentView === 'boards' && state.currentProject === null) {
+            showView('projects');
+        }
+    } else {
+        alert('Erro ao excluir o projeto. Tente novamente.');
     }
 }
 
@@ -2941,10 +3066,11 @@ async function handleSaveSquad(e) {
 
 // Atualizar select de responsável com membros da squad do projeto
 function updateAssigneeSelect() {
-    if (!state.currentProject || !state.currentProject.squadId) {
-        // Se não há projeto ou squad, limpar selects
-        const assigneeSelect = document.getElementById('issue-assignee');
-        const editAssigneeSelect = document.getElementById('edit-issue-assignee');
+    const assigneeSelect = document.getElementById('issue-assignee');
+    const editAssigneeSelect = document.getElementById('edit-issue-assignee');
+    
+    if (!state.currentProject) {
+        // Se não há projeto, limpar selects
         if (assigneeSelect) {
             assigneeSelect.innerHTML = '<option value="">Selecione um responsável</option>';
         }
@@ -2954,8 +3080,40 @@ function updateAssigneeSelect() {
         return;
     }
     
-    const squad = state.squads.find(s => s.id === state.currentProject.squadId);
+    // Verificar se o projeto tem squadId (pode ser squad_id do banco ou squadId mapeado)
+    const squadId = state.currentProject.squadId || state.currentProject.squad_id;
+    
+    if (!squadId) {
+        // Se não há squad, limpar selects
+        if (assigneeSelect) {
+            assigneeSelect.innerHTML = '<option value="">Nenhuma squad associada ao projeto</option>';
+        }
+        if (editAssigneeSelect) {
+            editAssigneeSelect.innerHTML = '<option value="">Nenhuma squad associada ao projeto</option>';
+        }
+        return;
+    }
+    
+    const squad = state.squads.find(s => s.id === squadId);
     if (!squad) {
+        // Squad não encontrada
+        if (assigneeSelect) {
+            assigneeSelect.innerHTML = '<option value="">Squad não encontrada</option>';
+        }
+        if (editAssigneeSelect) {
+            editAssigneeSelect.innerHTML = '<option value="">Squad não encontrada</option>';
+        }
+        return;
+    }
+    
+    if (!squad.members || squad.members.length === 0) {
+        // Squad sem membros
+        if (assigneeSelect) {
+            assigneeSelect.innerHTML = '<option value="">Nenhum membro cadastrado na squad</option>';
+        }
+        if (editAssigneeSelect) {
+            editAssigneeSelect.innerHTML = '<option value="">Nenhum membro cadastrado na squad</option>';
+        }
         return;
     }
     
@@ -2965,12 +3123,9 @@ function updateAssigneeSelect() {
             if (typeof member === 'string') {
                 return `<option value="${escapeHtml(member)}">${escapeHtml(member)}</option>`;
             } else {
-                return `<option value="${escapeHtml(member.name)}">${escapeHtml(member.name)} - ${escapeHtml(member.role)}</option>`;
+                return `<option value="${escapeHtml(member.name)}">${escapeHtml(member.name)}${member.role ? ' - ' + escapeHtml(member.role) : ''}</option>`;
             }
         }).join('');
-    
-    const assigneeSelect = document.getElementById('issue-assignee');
-    const editAssigneeSelect = document.getElementById('edit-issue-assignee');
     
     if (assigneeSelect) {
         assigneeSelect.innerHTML = options;
