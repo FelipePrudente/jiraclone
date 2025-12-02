@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JIRA Clone - Gerenciamento de Projetos</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <i class="fas fa-tasks"></i>
+                <span>JIRA Clone</span>
+            </div>
+        </div>
+        <nav class="sidebar-nav">
+            <ul>
+                <li class="nav-item active" data-view="boards">
+                    <i class="fas fa-th-large"></i>
+                    <span>Boards</span>
+                </li>
+                <li class="nav-item" data-view="projects">
+                    <i class="fas fa-folder"></i>
+                    <span>Projetos</span>
+                </li>
+                <li class="nav-item" data-view="backlog">
+                    <i class="fas fa-list"></i>
+                    <span>Backlog</span>
+                </li>
+                <li class="nav-item" data-view="sprints">
+                    <i class="fas fa-running"></i>
+                    <span>Sprints</span>
+                </li>
+                <li class="nav-item" data-view="squads">
+                    <i class="fas fa-users"></i>
+                    <span>Squads</span>
+                </li>
+                <li class="nav-item" data-view="financeiro">
+                    <i class="fas fa-dollar-sign"></i>
+                    <span>Financeiro</span>
+                </li>
+                <li class="nav-item nav-sub-item" data-view="lancamentos">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    <span>Lançamentos</span>
+                </li>
+            </ul>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <h1 id="page-title">Boards</h1>
+                <select id="project-selector" class="project-selector">
+                    <option value="">Selecione um projeto</option>
+                </select>
+            </div>
+            <div class="header-right">
+                <button class="btn btn-primary" id="create-issue-btn">
+                    <i class="fas fa-plus"></i> Criar Tarefa
+                </button>
+                <button class="btn btn-secondary" id="create-project-btn">
+                    <i class="fas fa-folder-plus"></i> Novo Projeto
+                </button>
+            </div>
+        </header>
+
+        <!-- Content Area -->
+        <div class="content-area">
+            <!-- Boards View -->
+            <div id="boards-view" class="view active">
+                <div class="board-container">
+                    <div class="board-header">
+                        <div class="board-header-left">
+                            <h2 id="board-title">Selecione um projeto para ver o board</h2>
+                            <button class="btn btn-secondary btn-sm" id="manage-stages-btn" style="display: none;">
+                                <i class="fas fa-cog"></i> Gerenciar Etapas
+                            </button>
+                        </div>
+                        <div class="board-filters" id="board-filters">
+                            <button class="filter-btn active" data-filter="all">Todos</button>
+                        </div>
+                    </div>
+                    <div class="board-columns" id="board-columns">
+                        <!-- Colunas serão renderizadas dinamicamente -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Projects View -->
+            <div id="projects-view" class="view">
+                <div class="projects-container">
+                    <h2>Meus Projetos</h2>
+                    <div class="projects-grid" id="projects-grid">
+                        <!-- Projetos serão inseridos aqui -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Backlog View -->
+            <div id="backlog-view" class="view">
+                <div class="backlog-container">
+                    <div class="backlog-header">
+                        <h2>Backlog</h2>
+                        <button class="btn btn-primary" id="add-to-sprint-btn" style="display: none;">
+                            <i class="fas fa-plus"></i> Adicionar à Sprint
+                        </button>
+                    </div>
+                    <div class="backlog-list" id="backlog-list">
+                        <!-- Issues do backlog serão inseridas aqui -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sprints View -->
+            <div id="sprints-view" class="view">
+                <div class="sprints-container">
+                    <div class="sprints-header">
+                        <h2>Sprints</h2>
+                        <button class="btn btn-primary" id="create-sprint-btn">
+                            <i class="fas fa-plus"></i> Criar Sprint
+                        </button>
+                    </div>
+                    <div id="active-sprint-section" style="display: none;">
+                        <div class="sprint-card active">
+                            <div class="sprint-header">
+                                <div>
+                                    <h3 id="active-sprint-name"></h3>
+                                    <p id="active-sprint-dates" class="sprint-dates"></p>
+                                    <p id="active-sprint-status" class="sprint-status"></p>
+                                </div>
+                                <div>
+                                    <button class="btn btn-primary" id="activate-sprint-btn" style="margin-right: 8px; display: none;">
+                                        <i class="fas fa-play"></i> Iniciar Sprint
+                                    </button>
+                                    <button class="btn btn-danger" id="close-sprint-btn">
+                                        <i class="fas fa-times"></i> Fechar Sprint
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="sprint-stats">
+                                <div class="stat-item">
+                                    <span class="stat-label">Itens na Sprint:</span>
+                                    <span class="stat-value" id="sprint-items-count">0</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Concluídos:</span>
+                                    <span class="stat-value" id="sprint-done-count">0</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Em Progresso:</span>
+                                    <span class="stat-value" id="sprint-in-progress-count">0</span>
+                                </div>
+                            </div>
+                            <div style="margin-top: 16px; margin-bottom: 16px;">
+                                <button class="btn btn-secondary" id="add-items-to-sprint-btn">
+                                    <i class="fas fa-plus"></i> Adicionar Tarefas à Sprint
+                                </button>
+                            </div>
+                            <div class="sprint-items" id="sprint-items-list">
+                                <!-- Itens da sprint serão inseridos aqui -->
+                            </div>
+                        </div>
+                    </div>
+                    <div id="sprints-history">
+                        <h3 style="margin-top: 24px; margin-bottom: 16px;">Histórico de Sprints</h3>
+                        <div id="sprints-list">
+                            <!-- Sprints anteriores serão inseridas aqui -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Squads View -->
+            <div id="squads-view" class="view">
+                <div class="squads-container">
+                    <div class="squads-header">
+                        <h2>Squads</h2>
+                        <button class="btn btn-primary" id="create-squad-btn">
+                            <i class="fas fa-plus"></i> Criar Squad
+                        </button>
+                    </div>
+                    <div class="squads-list" id="squads-list">
+                        <!-- Squads serão inseridas aqui -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Financeiro View -->
+            <div id="financeiro-view" class="view">
+                <div class="financeiro-container">
+                    <div class="financeiro-header">
+                        <h2>Financeiro</h2>
+                        <button class="btn btn-primary" id="create-company-btn">
+                            <i class="fas fa-plus"></i> Cadastrar Empresa Prestadora
+                        </button>
+                    </div>
+                    <div class="companies-list" id="companies-list">
+                        <!-- Empresas serão inseridas aqui -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lançamentos View -->
+            <div id="lancamentos-view" class="view">
+                <div class="lancamentos-container">
+                    <div class="lancamentos-header">
+                        <h2>Lançamentos</h2>
+                        <div class="lancamentos-header-actions">
+                            <p class="lancamentos-subtitle">
+                                Visualize e gerencie os lançamentos financeiros vinculados às atividades do projeto atual.
+                            </p>
+                            <button class="btn btn-primary" id="open-lancamentos-modal-btn">
+                                <i class="fas fa-chart-line"></i> Ver Resumo de Lançamentos
+                            </button>
+                        </div>
+                    </div>
+                    <div class="lancamentos-content">
+                        <div class="empty-state">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                            <h3>Consulte o resumo de lançamentos</h3>
+                            <p>Use o botão "Ver Resumo de Lançamentos" ao lado para visualizar as horas e valores lançados no projeto selecionado.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modals -->
+    <!-- Create Issue Modal -->
+    <div id="issue-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Criar Nova Tarefa</h2>
+                <span class="close" id="close-issue-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="issue-form">
+                    <div class="form-group">
+                        <label for="issue-title">Título *</label>
+                        <input type="text" id="issue-title" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="issue-description">Descrição</label>
+                        <textarea id="issue-description" rows="4"></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="issue-type">Tipo</label>
+                            <select id="issue-type">
+                                <option value="task">Tarefa</option>
+                                <option value="story">História</option>
+                                <option value="bug">Bug</option>
+                                <option value="epic">Épico</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="issue-priority">Prioridade</label>
+                            <select id="issue-priority">
+                                <option value="low">Baixa</option>
+                                <option value="medium" selected>Média</option>
+                                <option value="high">Alta</option>
+                                <option value="critical">Crítica</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="issue-story-points">Pontos de História</label>
+                            <select id="issue-story-points">
+                                <option value="">Selecione...</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="5">5</option>
+                                <option value="8">8</option>
+                                <option value="13">13</option>
+                            </select>
+                            <small>Obrigatório apenas para itens do tipo História</small>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="issue-assignee">Responsável</label>
+                        <select id="issue-assignee">
+                            <option value="">Selecione um responsável</option>
+                            <!-- Membros da squad serão preenchidos dinamicamente -->
+                        </select>
+                    </div>
+                    <div class="form-group" id="parent-issue-group" style="display: none;">
+                        <label for="issue-parent">Pertence a (Épico/História)</label>
+                        <select id="issue-parent">
+                            <option value="">Nenhum (item independente)</option>
+                            <!-- Opções serão preenchidas dinamicamente -->
+                        </select>
+                        <small id="parent-help-text"></small>
+                    </div>
+                    <div class="form-group">
+                        <label for="issue-attachments">Anexos</label>
+                        <input type="file" id="issue-attachments" multiple>
+                        <small>Inclua documentos técnicos, evidências de teste, e-mails em PDF, imagens etc.</small>
+                    </div>
+                    <div class="form-group" id="activities-section" style="display: none;">
+                        <label style="font-weight: 600; margin-bottom: 12px; display: block;">Atividades</label>
+                        <div id="activities-list">
+                            <!-- Lançamentos de horas serão inseridos aqui -->
+                        </div>
+                        <button type="button" class="btn btn-secondary btn-sm" id="add-activity-btn" style="margin-top: 8px;">
+                            <i class="fas fa-plus"></i> Adicionar Lançamento de Horas
+                        </button>
+                        <small>Registre as horas trabalhadas nesta tarefa</small>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" id="cancel-issue-btn">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Criar Tarefa</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Project Modal -->
+    <div id="project-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Criar Novo Projeto</h2>
+                <span class="close" id="close-project-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="project-form">
+                    <div class="form-group">
+                        <label for="project-name">Nome do Projeto *</label>
+                        <input type="text" id="project-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="project-key">Chave do Projeto *</label>
+                        <input type="text" id="project-key" required placeholder="Ex: PROJ" maxlength="10">
+                        <small>Chave única para identificar o projeto (máx. 10 caracteres)</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="project-description">Descrição</label>
+                        <textarea id="project-description" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="project-squad">Squad *</label>
+                        <select id="project-squad" required>
+                            <option value="">Selecione uma Squad</option>
+                        </select>
+                        <small>Selecione a squad responsável pelo projeto. Crie novas squads no menu "Squads"</small>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" id="cancel-project-btn">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Criar Projeto</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Squad Modal -->
+    <div id="squad-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Criar Nova Squad</h2>
+                <span class="close" id="close-squad-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="squad-form">
+                    <div class="form-group">
+                        <label for="squad-name">Nome da Squad *</label>
+                        <input type="text" id="squad-name" required placeholder="Ex: Squad Frontend">
+                    </div>
+                    <div class="form-group">
+                        <label>Membros da Squad *</label>
+                        <div id="squad-members-list">
+                            <!-- Membros serão adicionados aqui -->
+                        </div>
+                        <button type="button" class="btn btn-secondary btn-sm" id="add-member-btn" style="margin-top: 8px;">
+                            <i class="fas fa-plus"></i> Adicionar Membro
+                        </button>
+                        <small>Adicione os profissionais que compõem esta squad</small>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" id="cancel-squad-btn">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Criar Squad</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Company Modal -->
+    <div id="company-modal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h2>Cadastrar Empresa Prestadora</h2>
+                <span class="close" id="close-company-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="company-form">
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label style="display: flex; align-items: center; padding: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; margin: 0;" for="company-is-prodesp-area">
+                            <input type="checkbox" id="company-is-prodesp-area" onchange="toggleCompanyFormFields()" style="width: 18px; height: 18px; margin: 0; cursor: pointer; accent-color: var(--primary-color);">
+                            <span style="margin: 0 0 0 10px; font-weight: 600; font-size: 14px; color: var(--text-primary); user-select: none;">
+                                Área Prodesp
+                            </span>
+                        </label>
+                        <small style="display: block; margin-top: 6px; color: var(--text-secondary);">Marque esta opção se estiver cadastrando uma área interna da Prodesp</small>
+                    </div>
+                    
+                    <!-- Campos para Empresa Prestadora -->
+                    <div id="company-fields-group">
+                        <div class="form-group">
+                            <label for="company-name">Nome da Empresa *</label>
+                            <input type="text" id="company-name" required placeholder="Ex: Tech Solutions Ltda">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="company-contract-code">Código do Contrato *</label>
+                                <input type="text" id="company-contract-code" required placeholder="Ex: CONTR-2024-001">
+                            </div>
+                            <div class="form-group">
+                                <label for="company-contract-value">Valor do Contrato *</label>
+                                <input type="number" id="company-contract-value" required step="0.01" min="0" placeholder="0.00">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Campos para Área Prodesp -->
+                    <div id="prodesp-area-fields-group" style="display: none;">
+                        <div class="form-group">
+                            <label for="prodesp-area-name">Nome da Área *</label>
+                            <input type="text" id="prodesp-area-name" placeholder="Ex: TI, RH, Financeiro">
+                        </div>
+                        <div class="form-group">
+                            <label for="prodesp-service">Serviço Prestado *</label>
+                            <input type="text" id="prodesp-service" placeholder="Ex: Desenvolvimento de Sistemas">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="company-contract-start">Data de Início *</label>
+                            <input type="date" id="company-contract-start" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="company-contract-end">Data de Término *</label>
+                            <input type="date" id="company-contract-end" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Tipos de Profissionais e Valores Hora *</label>
+                        <div id="company-professionals-list">
+                            <!-- Tipos de profissionais serão adicionados aqui -->
+                        </div>
+                        <button type="button" class="btn btn-secondary btn-sm" id="add-professional-type-btn" style="margin-top: 8px;">
+                            <i class="fas fa-plus"></i> Adicionar Tipo de Profissional
+                        </button>
+                        <small>Adicione os tipos de profissionais e seus respectivos valores hora</small>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" id="cancel-company-btn">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Cadastrar Empresa</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manage Stages Modal -->
+    <div id="stages-modal" class="modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h2>Gerenciar Etapas</h2>
+                <span class="close" id="close-stages-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="stages-list-container">
+                    <div id="stages-list">
+                        <!-- Lista de etapas será renderizada aqui -->
+                    </div>
+                    <button type="button" class="btn btn-primary" id="add-stage-btn" style="margin-top: 16px; width: 100%;">
+                        <i class="fas fa-plus"></i> Adicionar Nova Etapa
+                    </button>
+                </div>
+                <div id="stage-form-container" style="display: none; margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border-color);">
+                    <h3 id="stage-form-title">Nova Etapa</h3>
+                    <form id="stage-form">
+                        <input type="hidden" id="stage-id">
+                        <div class="form-group">
+                            <label for="stage-name">Nome da Etapa *</label>
+                            <input type="text" id="stage-name" required placeholder="Ex: Em Revisão">
+                        </div>
+                        <div class="form-group">
+                            <label for="stage-key">Chave (ID) *</label>
+                            <input type="text" id="stage-key" required placeholder="Ex: review" pattern="[a-z0-9-]+" style="text-transform: lowercase;">
+                            <small>Apenas letras minúsculas, números e hífens. Usado internamente.</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="stage-color">Cor</label>
+                            <input type="color" id="stage-color" value="#0052cc">
+                        </div>
+                        <div class="form-group">
+                            <label for="stage-order">Ordem</label>
+                            <input type="number" id="stage-order" min="0" value="0">
+                            <small>Número para ordenar as etapas (menor = aparece primeiro)</small>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" id="cancel-stage-btn">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">Salvar Etapa</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Issue Modal -->
+    <div id="edit-issue-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Editar Tarefa</h2>
+                <span class="close" id="close-edit-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="edit-issue-form">
+                    <input type="hidden" id="edit-issue-id">
+                    <div class="form-group">
+                        <label for="edit-issue-title">Título *</label>
+                        <input type="text" id="edit-issue-title" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-issue-description">Descrição</label>
+                        <textarea id="edit-issue-description" rows="4"></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit-issue-type">Tipo</label>
+                            <select id="edit-issue-type">
+                                <option value="task">Tarefa</option>
+                                <option value="story">História</option>
+                                <option value="bug">Bug</option>
+                                <option value="epic">Épico</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-issue-priority">Prioridade</label>
+                            <select id="edit-issue-priority">
+                                <option value="low">Baixa</option>
+                                <option value="medium">Média</option>
+                                <option value="high">Alta</option>
+                                <option value="critical">Crítica</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit-issue-story-points">Pontos de História</label>
+                            <select id="edit-issue-story-points">
+                                <option value="">Selecione...</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="5">5</option>
+                                <option value="8">8</option>
+                                <option value="13">13</option>
+                            </select>
+                            <small>Obrigatório apenas para itens do tipo História</small>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-issue-assignee">Responsável</label>
+                        <select id="edit-issue-assignee">
+                            <option value="">Selecione um responsável</option>
+                            <!-- Membros da squad serão preenchidos dinamicamente -->
+                        </select>
+                    </div>
+                    <div class="form-group" id="edit-parent-issue-group" style="display: none;">
+                        <label for="edit-issue-parent">Pertence a (Épico/História)</label>
+                        <select id="edit-issue-parent">
+                            <option value="">Nenhum (item independente)</option>
+                            <!-- Opções serão preenchidas dinamicamente -->
+                        </select>
+                        <small id="edit-parent-help-text"></small>
+                    </div>
+                    <div class="form-group">
+                        <label>Anexos</label>
+                        <div id="edit-attachments-list" class="attachments-list">
+                            <!-- Lista de anexos será renderizada aqui -->
+                        </div>
+                        <label for="edit-issue-attachments" style="margin-top: 8px; display: block;">Adicionar novos anexos</label>
+                        <input type="file" id="edit-issue-attachments" multiple>
+                        <small>Você pode remover anexos existentes ou adicionar novos arquivos.</small>
+                    </div>
+                    <div class="form-group" id="edit-activities-section">
+                        <label style="font-weight: 600; margin-bottom: 12px; display: block;">Atividades</label>
+                        <div id="edit-activities-list">
+                            <!-- Lançamentos de horas serão inseridos aqui -->
+                        </div>
+                        <button type="button" class="btn btn-secondary btn-sm" id="add-edit-activity-btn" style="margin-top: 8px;">
+                            <i class="fas fa-plus"></i> Adicionar Lançamento de Horas
+                        </button>
+                        <small>Registre as horas trabalhadas nesta tarefa</small>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-danger" id="delete-issue-btn">Excluir</button>
+                        <button type="button" class="btn btn-secondary" id="cancel-edit-btn">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Sprint Modal -->
+    <div id="sprint-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="sprint-modal-title">Criar Nova Sprint</h2>
+                <span class="close" id="close-sprint-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="sprint-form">
+                    <input type="hidden" id="sprint-id">
+                    <div class="form-group">
+                        <label for="sprint-name">Nome da Sprint *</label>
+                        <input type="text" id="sprint-name" required placeholder="Ex: Sprint 1 - Janeiro 2024">
+                    </div>
+                    <div class="form-group">
+                        <label for="sprint-weeks">Duração da Sprint (semanas) *</label>
+                        <select id="sprint-weeks" required>
+                            <option value="2">2 semanas</option>
+                            <option value="3" selected>3 semanas</option>
+                            <option value="4">4 semanas</option>
+                        </select>
+                        <small>A data de início será definida quando você ativar a sprint</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="sprint-goal">Objetivo da Sprint</label>
+                        <textarea id="sprint-goal" rows="3" placeholder="Descreva o objetivo principal desta sprint"></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" id="cancel-sprint-btn">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" id="save-sprint-btn">Criar e Abrir Sprint</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Items to Sprint Modal -->
+    <div id="add-to-sprint-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Adicionar Itens à Sprint</h2>
+                <span class="close" id="close-add-to-sprint-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 16px; color: var(--text-secondary);">Selecione os itens do backlog para adicionar à sprint atual:</p>
+                <div id="backlog-items-checklist">
+                    <!-- Itens do backlog serão listados aqui -->
+                </div>
+                <div class="modal-footer" style="margin-top: 24px;">
+                    <button type="button" class="btn btn-secondary" id="cancel-add-to-sprint-btn">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="confirm-add-to-sprint-btn">Adicionar Selecionados</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lançamentos Resumo Modal -->
+    <div id="lancamentos-modal" class="modal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h2>Resumo de Lançamentos</h2>
+                <span class="close" id="close-lancamentos-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 16px; color: var(--text-secondary);">
+                    Consolidado de horas e valores lançados nas atividades do projeto selecionado.
+                </p>
+                <div id="lancamentos-summary-container">
+                    <!-- Tabela de lançamentos será renderizada via JavaScript -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="close-lancamentos-modal-footer">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Supabase Integration -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="supabase-service.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
+
