@@ -2596,7 +2596,7 @@ function renderBacklogChecklist(sprintId) {
 }
 
 // Adicionar itens à sprint
-function handleAddItemsToSprint() {
+async function handleAddItemsToSprint() {
     const activeSprint = getActiveSprint();
     if (!activeSprint) {
         alert('Não há sprint ativa.');
@@ -2627,6 +2627,8 @@ function handleAddItemsToSprint() {
         ? Math.max(...existingSprintItems.map(i => i.sprintOrder !== undefined ? i.sprintOrder : -1))
         : -1;
     
+    const updatedIssues = [];
+
     selectedIds.forEach((issueId, index) => {
         const issue = state.issues.find(i => i.id === issueId);
         if (issue) {
@@ -2636,8 +2638,18 @@ function handleAddItemsToSprint() {
             // Se a sprint já está ativa, as tarefas vão direto para a segunda etapa
             issue.status = secondStage.key;
             issue.updatedAt = new Date().toISOString();
+            updatedIssues.push(issue);
         }
     });
+
+    // Persistir no Supabase, se disponível
+    if (typeof saveIssue === 'function' && isSupabaseAvailable() && updatedIssues.length > 0) {
+        try {
+            await Promise.all(updatedIssues.map(issue => saveIssue(issue)));
+        } catch (error) {
+            console.error('Erro ao salvar itens da sprint no Supabase:', error);
+        }
+    }
 
     saveData();
     closeAddToSprintModal();
