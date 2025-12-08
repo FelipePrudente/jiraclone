@@ -135,6 +135,9 @@
                                     <p id="active-sprint-status" class="sprint-status"></p>
                                 </div>
                                 <div>
+                                    <button class="btn btn-secondary" id="delete-sprint-btn" style="margin-right: 8px; display: none;">
+                                        <i class="fas fa-trash"></i> Excluir Sprint
+                                    </button>
                                     <button class="btn btn-primary" id="activate-sprint-btn" style="margin-right: 8px; display: none;">
                                         <i class="fas fa-play"></i> Iniciar Sprint
                                     </button>
@@ -638,7 +641,12 @@
                             <option value="3" selected>3 semanas</option>
                             <option value="4">4 semanas</option>
                         </select>
-                        <small>A data de início será definida quando você ativar a sprint</small>
+                        <small>A data de término é calculada a partir da data de início</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="sprint-start-date">Data de Início *</label>
+                        <input type="date" id="sprint-start-date" required>
+                        <small>Use esta data para planejar; ao ativar a sprint, as datas serão respeitadas</small>
                     </div>
                     <div class="form-group">
                         <label for="sprint-goal">Objetivo da Sprint</label>

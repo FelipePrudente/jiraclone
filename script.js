@@ -294,6 +294,10 @@ function initializeEventListeners() {
     if (activateSprintBtn) {
         activateSprintBtn.addEventListener('click', handleActivateSprint);
     }
+    const deleteSprintBtn = document.getElementById('delete-sprint-btn');
+    if (deleteSprintBtn) {
+        deleteSprintBtn.addEventListener('click', handleDeleteSprint);
+    }
     const addItemsToSprintBtn = document.getElementById('add-items-to-sprint-btn');
     if (addItemsToSprintBtn) {
         addItemsToSprintBtn.addEventListener('click', openAddToSprintModal);
@@ -2210,7 +2214,7 @@ function renderActiveSprint(sprint) {
     }
     
     if (datesEl) {
-        if (sprint.status === 'active' && sprint.startDate && sprint.endDate) {
+        if ((sprint.status === 'active' || sprint.status === 'refinamento') && sprint.startDate && sprint.endDate) {
             const startDate = new Date(sprint.startDate).toLocaleDateString('pt-BR');
             const endDate = new Date(sprint.endDate).toLocaleDateString('pt-BR');
             const today = new Date();
@@ -2226,7 +2230,7 @@ function renderActiveSprint(sprint) {
                 datesEl.innerHTML += ` <span style="color: var(--danger); font-weight: 600;">(Atrasada ${Math.abs(daysRemaining)} dias)</span>`;
             }
         } else {
-            datesEl.textContent = `Duração: ${sprint.weeks} semana(s) - Aguardando ativação`;
+            datesEl.textContent = `Duração: ${sprint.weeks} semana(s) - Aguardando datas`;
         }
     }
     
@@ -2236,6 +2240,16 @@ function renderActiveSprint(sprint) {
             activateBtn.style.display = 'inline-flex';
         } else {
             activateBtn.style.display = 'none';
+        }
+    }
+
+    // Exibir botão de excluir apenas enquanto a sprint não estiver ativa
+    const deleteSprintBtn = document.getElementById('delete-sprint-btn');
+    if (deleteSprintBtn) {
+        if (sprint.status === 'refinamento') {
+            deleteSprintBtn.style.display = 'inline-flex';
+        } else {
+            deleteSprintBtn.style.display = 'none';
         }
     }
 
@@ -2401,12 +2415,24 @@ async function handleSaveSprint(e) {
     const name = document.getElementById('sprint-name');
     const weeks = document.getElementById('sprint-weeks');
     const goal = document.getElementById('sprint-goal');
+    const startDateInput = document.getElementById('sprint-start-date');
     
     if (!name || !weeks) return;
 
     const sprintName = name.value.trim();
     const sprintWeeks = parseInt(weeks.value);
     const sprintGoal = goal ? goal.value.trim() : '';
+    const startDateValue = startDateInput ? startDateInput.value : '';
+    const startDate = startDateValue ? new Date(startDateValue) : null;
+
+    if (!startDate) {
+        alert('Defina a data de início da sprint.');
+        return;
+    }
+
+    // calcular data de término a partir da data de início e duração
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + (sprintWeeks * 7));
 
     const sprint = {
         id: 'temp-' + generateId(), // ID temporário para permitir insert no Supabase
@@ -2415,8 +2441,8 @@ async function handleSaveSprint(e) {
         weeks: sprintWeeks,
         goal: sprintGoal,
         status: 'refinamento', // Status inicial: em refinamento
-        startDate: null, // Será definida quando ativar
-        endDate: null, // Será definida quando ativar
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0],
         activatedAt: null,
         createdAt: new Date().toISOString()
     };
@@ -2480,14 +2506,16 @@ function handleActivateSprint() {
         return;
     }
 
-    // Definir datas de início e fim
+    // Definir datas de início e fim respeitando a data planejada
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const endDate = new Date(today);
-    endDate.setDate(today.getDate() + (activeSprint.weeks * 7));
+    const plannedStart = activeSprint.startDate ? new Date(activeSprint.startDate) : today;
+    const start = plannedStart > today ? plannedStart : today; // não iniciar no passado
+    const endDate = new Date(start);
+    endDate.setDate(start.getDate() + (activeSprint.weeks * 7));
 
     activeSprint.status = 'active';
-    activeSprint.startDate = today.toISOString().split('T')[0];
+    activeSprint.startDate = start.toISOString().split('T')[0];
     activeSprint.endDate = endDate.toISOString().split('T')[0];
     activeSprint.activatedAt = new Date().toISOString();
 
@@ -2525,6 +2553,54 @@ function handleCloseSprint() {
         renderBacklog();
     }
     updateBacklogHeader();
+}
+
+// Excluir sprint (apenas em refinamento)
+async function handleDeleteSprint() {
+    const activeSprint = getActiveSprint();
+    if (!activeSprint || activeSprint.status !== 'refinamento') {
+        alert('Só é possível excluir sprints em refinamento.');
+        return;
+    }
+
+    if (!confirm('Tem certeza que deseja excluir esta sprint? Itens voltarão para o backlog.')) {
+        return;
+    }
+
+    // Remover vínculo da sprint das issues
+    const sprintItems = state.issues.filter(i => i.sprintId === activeSprint.id);
+    sprintItems.forEach(issue => {
+        issue.sprintId = null;
+        issue.sprintOrder = undefined;
+        issue.updatedAt = new Date().toISOString();
+    });
+
+    // Remover sprint do estado
+    state.sprints = state.sprints.filter(s => s.id !== activeSprint.id);
+
+    // Persistir no Supabase, se disponível
+    if (typeof deleteSprintById === 'function' && isSupabaseAvailable()) {
+        try {
+            await deleteSprintById(activeSprint.id);
+        } catch (error) {
+            console.error('Erro ao excluir sprint no Supabase:', error);
+        }
+    }
+
+    // Salvar issues atualizadas no Supabase
+    if (typeof saveIssue === 'function' && isSupabaseAvailable() && sprintItems.length > 0) {
+        try {
+            await Promise.all(sprintItems.map(issue => saveIssue(issue)));
+        } catch (error) {
+            console.error('Erro ao salvar issues após excluir sprint:', error);
+        }
+    }
+
+    saveData();
+    renderSprints();
+    updateBacklogHeader();
+    if (state.currentView === 'backlog') renderBacklog();
+    if (state.currentView === 'boards') renderBoard();
 }
 
 // Abrir modal de adicionar à sprint

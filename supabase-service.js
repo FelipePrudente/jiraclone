@@ -205,6 +205,26 @@ async function deleteProject(projectId) {
     }
 }
 
+// Excluir sprint
+async function deleteSprintById(sprintId) {
+    if (!isSupabaseAvailable()) {
+        return deleteFromLocalStorage('jira-sprints', sprintId);
+    }
+
+    try {
+        const { error } = await supabaseClient
+            .from('sprints')
+            .delete()
+            .eq('id', sprintId);
+
+        if (error) throw error;
+        return true;
+    } catch (error) {
+        console.error('Erro ao deletar sprint:', error);
+        return false;
+    }
+}
+
 // ==================== STAGES ====================
 
 async function loadStages(projectId = null) {
