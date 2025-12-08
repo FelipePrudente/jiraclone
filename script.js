@@ -2384,7 +2384,7 @@ function closeSprintModal() {
 }
 
 // Salvar sprint
-function handleSaveSprint(e) {
+async function handleSaveSprint(e) {
     e.preventDefault();
     
     if (!state.currentProject) {
@@ -2409,7 +2409,7 @@ function handleSaveSprint(e) {
     const sprintGoal = goal ? goal.value.trim() : '';
 
     const sprint = {
-        id: generateId(),
+        id: 'temp-' + generateId(), // ID temporário para permitir insert no Supabase
         projectId: state.currentProject.id,
         name: sprintName,
         weeks: sprintWeeks,
@@ -2422,6 +2422,23 @@ function handleSaveSprint(e) {
     };
 
     state.sprints.push(sprint);
+
+    // Salvar no Supabase se disponível e substituir pelo registro real
+    if (typeof saveSprint === 'function' && isSupabaseAvailable()) {
+        try {
+            const savedSprint = await saveSprint(sprint);
+            if (savedSprint && savedSprint.id) {
+                const index = state.sprints.findIndex(s => s.id === sprint.id);
+                if (index !== -1) {
+                    state.sprints[index] = savedSprint;
+                    sprint.id = savedSprint.id; // manter referência consistente
+                }
+            }
+        } catch (error) {
+            console.error('Erro ao salvar sprint no Supabase:', error);
+        }
+    }
+
     saveData();
     closeSprintModal();
     renderSprints();
