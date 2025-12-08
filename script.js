@@ -1818,7 +1818,7 @@ function dragEnd(ev) {
     ev.target.classList.remove('dragging');
 }
 
-function drop(ev) {
+async function drop(ev) {
     ev.preventDefault();
     
     if (!draggedElement || !state.currentProject) return;
@@ -1855,6 +1855,16 @@ function drop(ev) {
     if (issue.status !== newStatus) {
         issue.status = newStatus;
         issue.updatedAt = new Date().toISOString();
+
+        // Persistir no Supabase quando disponível
+        if (typeof saveIssue === 'function' && isSupabaseAvailable()) {
+            try {
+                await saveIssue(issue);
+            } catch (error) {
+                console.error('Erro ao salvar issue no Supabase ao mover etapa:', error);
+            }
+        }
+
         saveData();
         renderBoard();
     }
@@ -2389,6 +2399,14 @@ function openSprintModal() {
     // Definir semanas padrão como 3
     const weeksSelect = document.getElementById('sprint-weeks');
     if (weeksSelect) weeksSelect.value = '3';
+
+    // Definir data de início padrão como hoje
+    const startDateInput = document.getElementById('sprint-start-date');
+    if (startDateInput) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        startDateInput.value = today.toISOString().split('T')[0];
+    }
 }
 
 // Fechar modal de sprint
@@ -2477,7 +2495,7 @@ async function handleSaveSprint(e) {
 }
 
 // Ativar sprint
-function handleActivateSprint() {
+async function handleActivateSprint() {
     const activeSprint = getActiveSprint();
     if (!activeSprint || activeSprint.status !== 'refinamento') return;
 
@@ -2519,6 +2537,15 @@ function handleActivateSprint() {
     activeSprint.endDate = endDate.toISOString().split('T')[0];
     activeSprint.activatedAt = new Date().toISOString();
 
+    // Persistir sprint no Supabase, se disponível
+    if (typeof saveSprint === 'function' && isSupabaseAvailable()) {
+        try {
+            await saveSprint(activeSprint);
+        } catch (error) {
+            console.error('Erro ao atualizar sprint no Supabase:', error);
+        }
+    }
+
     saveData();
     renderSprints();
     if (state.currentView === 'boards') {
@@ -2527,7 +2554,7 @@ function handleActivateSprint() {
 }
 
 // Fechar sprint
-function handleCloseSprint() {
+async function handleCloseSprint() {
     const activeSprint = getActiveSprint();
     if (!activeSprint) return;
 
@@ -2546,6 +2573,15 @@ function handleCloseSprint() {
             issue.updatedAt = new Date().toISOString();
         }
     });
+
+    // Persistir sprint no Supabase, se disponível
+    if (typeof saveSprint === 'function' && isSupabaseAvailable()) {
+        try {
+            await saveSprint(activeSprint);
+        } catch (error) {
+            console.error('Erro ao atualizar sprint no Supabase:', error);
+        }
+    }
 
     saveData();
     renderSprints();
