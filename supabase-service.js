@@ -279,7 +279,8 @@ async function loadSprints(projectId = null) {
         const { data, error } = await query.order('created_at', { ascending: false });
 
         if (error) throw error;
-        return data || [];
+        // Garantir que os campos sejam convertidos para o formato esperado no app
+        return (data || []).map(mapSprintFromDB);
     } catch (error) {
         console.error('Erro ao carregar sprints:', error);
         return loadFromLocalStorage('jira-sprints', []);
