@@ -2795,12 +2795,6 @@ window.removeFromSprint = function(issueId) {
     const activeSprint = getActiveSprint();
     if (!activeSprint) return;
 
-    // Não permitir remover itens de sprint já iniciada
-    if (activeSprint.status === 'active') {
-        alert('Esta sprint já foi iniciada. A inclusão ou retirada de itens deve ser autorizada pelo Líder de Implantação.');
-        return;
-    }
-
     if (!confirm('Deseja remover este item da sprint? Ele voltará para o backlog.')) {
         return;
     }
