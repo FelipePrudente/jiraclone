@@ -788,6 +788,49 @@ body {
     color: var(--text-secondary);
 }
 
+.activity-field {
+    border: 1px solid var(--border-color);
+    padding: 12px;
+    margin-bottom: 8px;
+    border-radius: 6px;
+    background: var(--white);
+}
+
+.activity-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+
+.activity-row .form-group {
+    flex: 1;
+    min-width: 160px;
+    margin-bottom: 12px;
+}
+
+.activity-row .form-group.description-group {
+    flex: 3;
+    min-width: 260px;
+}
+
+.activity-description-input {
+    min-height: 48px;
+    resize: vertical;
+    line-height: 1.4;
+    overflow: hidden;
+}
+
+@media (max-width: 768px) {
+    .activity-row {
+        align-items: stretch;
+    }
+    .activity-row .form-group,
+    .activity-row .form-group.description-group {
+        min-width: 100%;
+    }
+}
+
 /* Empty State */
 .empty-state {
     text-align: center;

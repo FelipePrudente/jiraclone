@@ -1350,6 +1350,13 @@ function hasCircularReference(issueId, potentialParentId) {
 
 // ==================== GERENCIAMENTO DE ATIVIDADES (LANÇAMENTOS DE HORAS) ====================
 
+// Ajusta a altura do campo de descrição conforme o conteúdo
+function autoResizeActivityDescription(textarea) {
+    if (!textarea) return;
+    textarea.style.height = 'auto';
+    textarea.style.height = `${textarea.scrollHeight}px`;
+}
+
 // Adicionar campo de lançamento de horas
 function addActivityField(containerId, activity = null) {
     const activitiesList = document.getElementById(containerId);
@@ -1359,20 +1366,19 @@ function addActivityField(containerId, activity = null) {
     const activityField = document.createElement('div');
     activityField.className = 'activity-field';
     activityField.dataset.activityId = activityId;
-    activityField.style.cssText = 'border: 1px solid var(--border-color); padding: 12px; margin-bottom: 8px; border-radius: 6px; background: var(--bg-primary);';
     activityField.innerHTML = `
-        <div style="display: flex; gap: 8px; align-items: flex-end;">
-            <div class="form-group" style="flex: 1;">
+        <div class="activity-row">
+            <div class="form-group">
                 <label>Data *</label>
                 <input type="date" class="activity-date-input" required value="${activity ? activity.date : ''}">
             </div>
-            <div class="form-group" style="flex: 1;">
+            <div class="form-group">
                 <label>Horas Trabalhadas *</label>
                 <input type="number" class="activity-hours-input" step="0.5" min="0" placeholder="0.0" required value="${activity ? activity.hours : ''}">
             </div>
-            <div class="form-group" style="flex: 2;">
+            <div class="form-group description-group">
                 <label>Descrição</label>
-                <input type="text" class="activity-description-input" placeholder="Descreva a atividade realizada" value="${activity ? (activity.description || '') : ''}">
+                <textarea class="activity-description-input" placeholder="Descreva a atividade realizada" rows="3">${activity ? (activity.description || '') : ''}</textarea>
             </div>
             <button type="button" class="btn btn-danger btn-sm" onclick="removeActivityField('${activityId}', '${containerId}')">
                 <i class="fas fa-times"></i>
@@ -1382,6 +1388,13 @@ function addActivityField(containerId, activity = null) {
             <strong>Valor:</strong> R$ ${activity.value ? activity.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0,00'}
         </div>` : ''}
     `;
+
+    const descriptionTextarea = activityField.querySelector('.activity-description-input');
+    if (descriptionTextarea) {
+        autoResizeActivityDescription(descriptionTextarea);
+        descriptionTextarea.addEventListener('input', () => autoResizeActivityDescription(descriptionTextarea));
+    }
+
     activitiesList.appendChild(activityField);
 }
 
