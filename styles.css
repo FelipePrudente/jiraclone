@@ -788,6 +788,7 @@ body {
     color: var(--text-secondary);
 }
 
+/* Estilo específico para seção de datas - sempre lado a lado */
 #edit-dates-section.form-row {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
@@ -1194,10 +1195,10 @@ body {
     .form-row {
         grid-template-columns: 1fr;
     }
-
+    
+    /* Manter datas lado a lado mesmo em telas menores */
     #edit-dates-section.form-row {
         grid-template-columns: 1fr 1fr !important;
     }
 }
-
 
