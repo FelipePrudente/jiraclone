@@ -788,6 +788,18 @@ body {
     color: var(--text-secondary);
 }
 
+#edit-dates-section.form-row {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 16px;
+}
+
+#edit-dates-section .form-group {
+    margin-bottom: 0;
+    flex: 1;
+    min-width: 0;
+}
+
 .activity-field {
     border: 1px solid var(--border-color);
     padding: 12px;
@@ -1182,5 +1194,10 @@ body {
     .form-row {
         grid-template-columns: 1fr;
     }
+
+    #edit-dates-section.form-row {
+        grid-template-columns: 1fr 1fr !important;
+    }
 }
+
 
