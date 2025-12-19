@@ -96,6 +96,8 @@ CREATE TABLE IF NOT EXISTS issues (
     sprint_order INTEGER,
     attachments JSONB DEFAULT '[]'::jsonb,
     activities JSONB DEFAULT '[]'::jsonb,
+    start_date TIMESTAMP WITH TIME ZONE,
+    completed_date TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     UNIQUE(project_id, number)

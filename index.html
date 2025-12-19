@@ -600,6 +600,18 @@
                         <input type="file" id="edit-issue-attachments" multiple>
                         <small>Você pode remover anexos existentes ou adicionar novos arquivos.</small>
                     </div>
+                    <div class="form-row" id="edit-dates-section" style="display: none; grid-template-columns: 1fr 1fr;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="edit-issue-start-date">Data de Início</label>
+                            <input type="text" id="edit-issue-start-date" readonly style="background-color: var(--background); cursor: not-allowed;">
+                            <small>Gravada automaticamente ao entrar em "Em Progresso"</small>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="edit-issue-completed-date">Data de Conclusão</label>
+                            <input type="text" id="edit-issue-completed-date" readonly style="background-color: var(--background); cursor: not-allowed;">
+                            <small>Gravada automaticamente ao entrar em "Concluído"</small>
+                        </div>
+                    </div>
                     <div class="form-group" id="edit-activities-section">
                         <label style="font-weight: 600; margin-bottom: 12px; display: block;">Atividades</label>
                         <div id="edit-activities-list">

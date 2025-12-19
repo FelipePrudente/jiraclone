@@ -411,7 +411,9 @@ async function saveIssue(issue) {
             sprint_id: issue.sprintId,
             sprint_order: issue.sprintOrder,
             attachments: issue.attachments || [],
-            activities: issue.activities || []
+            activities: issue.activities || [],
+            start_date: issue.startDate || null,
+            completed_date: issue.completedDate || null
         };
 
         if (issue.id && !issue.id.startsWith('temp-')) {
@@ -479,6 +481,8 @@ function mapIssueFromDB(data) {
         sprintOrder: data.sprint_order,
         attachments: data.attachments || [],
         activities: data.activities || [],
+        startDate: data.start_date || null,
+        completedDate: data.completed_date || null,
         createdAt: data.created_at,
         updatedAt: data.updated_at
     };

@@ -981,6 +981,37 @@ function openEditModal(issueId) {
     const editAttachInput = document.getElementById('edit-issue-attachments');
     if (editAttachInput) editAttachInput.value = '';
     
+    // Renderizar datas de início e conclusão
+    const datesSection = document.getElementById('edit-dates-section');
+    const startDateInput = document.getElementById('edit-issue-start-date');
+    const completedDateInput = document.getElementById('edit-issue-completed-date');
+    
+    if (datesSection && startDateInput && completedDateInput) {
+        if (issue.startDate || issue.completedDate) {
+            datesSection.style.display = 'block';
+            startDateInput.value = issue.startDate 
+                ? new Date(issue.startDate).toLocaleString('pt-BR', { 
+                    day: '2-digit', 
+                    month: '2-digit', 
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                })
+                : '-';
+            completedDateInput.value = issue.completedDate 
+                ? new Date(issue.completedDate).toLocaleString('pt-BR', { 
+                    day: '2-digit', 
+                    month: '2-digit', 
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                })
+                : '-';
+        } else {
+            datesSection.style.display = 'none';
+        }
+    }
+    
     // Renderizar atividades existentes
     const activitiesList = document.getElementById('edit-activities-list');
     const activitiesSection = document.getElementById('edit-activities-section');
@@ -1291,14 +1322,21 @@ async function handleUpdateIssue(e) {
     issue.type = newType;
     issue.priority = document.getElementById('edit-issue-priority').value;
     const editStatus = document.getElementById('edit-issue-status');
+    let newStatus = oldStatus;
     if (editStatus) {
-        issue.status = editStatus.value;
+        newStatus = editStatus.value;
+        issue.status = newStatus;
     }
     const assigneeName = document.getElementById('edit-issue-assignee').value;
     issue.assignee = assigneeName;
     issue.parentId = parentId;
     issue.storyPoints = storyPoints;
     issue.attachments = [...existingAttachments, ...newAttachments];
+    
+    // Atualizar datas de início e conclusão baseado no status
+    if (oldStatus !== newStatus) {
+        updateIssueDates(issue, oldStatus, newStatus);
+    }
     
     // Coletar atividades (lançamentos de horas)
     const activities = collectActivities('edit-activities-list');
@@ -1346,6 +1384,26 @@ function hasCircularReference(issueId, potentialParentId) {
         currentId = currentIssue.parentId;
     }
     return false;
+}
+
+// Atualizar datas de início e conclusão baseado no status
+function updateIssueDates(issue, oldStatus, newStatus) {
+    const now = new Date().toISOString();
+    
+    // Gravar data de início quando entra em "Em Progresso"
+    if (newStatus === 'in-progress' && !issue.startDate) {
+        issue.startDate = now;
+    }
+    
+    // Gravar data de conclusão quando entra em "Concluído"
+    if (newStatus === 'done' && !issue.completedDate) {
+        issue.completedDate = now;
+    }
+    
+    // Se voltar de "Concluído" para outro status, manter a data de conclusão
+    // (não remover, apenas não atualizar se já existir)
+    // Se voltar de "Em Progresso" para outro status, manter a data de início
+    // (não remover, apenas não atualizar se já existir)
 }
 
 // ==================== GERENCIAMENTO DE ATIVIDADES (LANÇAMENTOS DE HORAS) ====================
@@ -1866,8 +1924,12 @@ async function drop(ev) {
     }
 
     if (issue.status !== newStatus) {
+        const oldStatus = issue.status;
         issue.status = newStatus;
         issue.updatedAt = new Date().toISOString();
+        
+        // Atualizar datas de início e conclusão baseado no status
+        updateIssueDates(issue, oldStatus, newStatus);
 
         // Persistir no Supabase quando disponível
         if (typeof saveIssue === 'function' && isSupabaseAvailable()) {
