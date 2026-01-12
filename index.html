@@ -714,6 +714,27 @@
         </div>
     </div>
 
+    <!-- Sprint Concluídas Modal -->
+    <div id="sprint-concluidas-modal" class="modal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h2 id="sprint-concluidas-title">Tarefas Concluídas da Sprint</h2>
+                <span class="close" id="close-sprint-concluidas-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="sprint-concluidas-info" style="margin-bottom: 16px; padding: 12px; background: var(--bg-secondary); border-radius: 6px;">
+                    <!-- Informações da sprint serão inseridas aqui -->
+                </div>
+                <div id="sprint-concluidas-container">
+                    <!-- Lista de tarefas concluídas será renderizada via JavaScript -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="close-sprint-concluidas-modal-footer">Fechar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Supabase Integration -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-config.js"></script>

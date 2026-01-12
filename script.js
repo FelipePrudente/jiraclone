@@ -363,6 +363,16 @@ function initializeEventListeners() {
         closeLancamentosModalFooterBtn.addEventListener('click', closeLancamentosModal);
     }
 
+    // Modal de tarefas concluídas da sprint
+    const closeSprintConcluidasModalBtn = document.getElementById('close-sprint-concluidas-modal');
+    const closeSprintConcluidasModalFooterBtn = document.getElementById('close-sprint-concluidas-modal-footer');
+    if (closeSprintConcluidasModalBtn) {
+        closeSprintConcluidasModalBtn.addEventListener('click', closeSprintConcluidasModal);
+    }
+    if (closeSprintConcluidasModalFooterBtn) {
+        closeSprintConcluidasModalFooterBtn.addEventListener('click', closeSprintConcluidasModal);
+    }
+
     // Fechar modal ao clicar fora
     document.querySelectorAll('.modal').forEach(modal => {
         modal.addEventListener('click', (e) => {
@@ -2227,6 +2237,15 @@ function handleSaveStage(e) {
 
 // ==================== GERENCIAMENTO DE SPRINTS ====================
 
+// Recupera a chave da primeira etapa (backlog). Fallback para 'backlog' se não houver etapas.
+function getBacklogStageKey() {
+    const sortedStages = [...state.stages].sort((a, b) => a.order - b.order);
+    if (sortedStages.length > 0 && sortedStages[0].key) {
+        return sortedStages[0].key;
+    }
+    return 'backlog';
+}
+
 // Obter sprint ativa ou em refinamento do projeto atual
 function getActiveSprint() {
     if (!state.currentProject) return null;
@@ -2432,7 +2451,7 @@ function renderSprintsHistory(sprints) {
         const doneCount = sprintItems.filter(i => i.status === 'done').length;
         
         return `
-            <div class="sprint-history-item closed">
+            <div class="sprint-history-item closed" style="cursor: pointer;" onclick="openSprintConcluidasModal('${sprint.id}')">
                 <div>
                     <h4>${escapeHtml(sprint.name)}</h4>
                     <p style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
@@ -2442,6 +2461,127 @@ function renderSprintsHistory(sprints) {
             </div>
         `;
     }).join('');
+}
+
+// Abrir modal de tarefas concluídas da sprint
+window.openSprintConcluidasModal = function(sprintId) {
+    const sprint = state.sprints.find(s => s.id === sprintId);
+    if (!sprint) return;
+
+    const project = state.projects.find(p => p.id === sprint.projectId);
+    if (!project) return;
+
+    // Filtrar apenas tarefas concluídas da sprint
+    const doneItems = state.issues.filter(i => 
+        i.sprintId === sprintId && i.status === 'done'
+    );
+
+    // Organizar por tipo: épicos primeiro, depois histórias, depois tarefas/bugs
+    const typeOrder = { 'epic': 1, 'story': 2, 'task': 3, 'bug': 3 };
+    const sortedItems = doneItems.sort((a, b) => {
+        const aOrder = typeOrder[a.type] || 4;
+        const bOrder = typeOrder[b.type] || 4;
+        if (aOrder !== bOrder) return aOrder - bOrder;
+        return a.number - b.number;
+    });
+
+    // Atualizar título do modal
+    const titleEl = document.getElementById('sprint-concluidas-title');
+    if (titleEl) {
+        titleEl.textContent = `Tarefas Concluídas - ${escapeHtml(sprint.name)}`;
+    }
+
+    // Atualizar informações da sprint
+    const infoEl = document.getElementById('sprint-concluidas-info');
+    if (infoEl) {
+        const startDate = new Date(sprint.startDate).toLocaleDateString('pt-BR');
+        const endDate = new Date(sprint.endDate).toLocaleDateString('pt-BR');
+        const totalItems = state.issues.filter(i => i.sprintId === sprintId).length;
+        
+        infoEl.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                <div>
+                    <strong>Período:</strong> ${startDate} - ${endDate}
+                </div>
+                <div>
+                    <strong>Total de itens:</strong> ${totalItems} • <strong>Concluídos:</strong> ${doneItems.length}
+                </div>
+            </div>
+        `;
+    }
+
+    // Renderizar lista de tarefas concluídas
+    const containerEl = document.getElementById('sprint-concluidas-container');
+    if (!containerEl) return;
+
+    if (sortedItems.length === 0) {
+        containerEl.innerHTML = `
+            <div class="empty-state" style="padding: 40px; text-align: center;">
+                <i class="fas fa-check-circle" style="font-size: 48px; color: var(--text-secondary); margin-bottom: 16px;"></i>
+                <h3>Nenhuma tarefa concluída</h3>
+                <p style="color: var(--text-secondary);">Esta sprint não possui tarefas concluídas.</p>
+            </div>
+        `;
+    } else {
+        containerEl.innerHTML = sortedItems.map(issue => {
+            const issueKey = `${project.key}-${issue.number}`;
+            const typeLabel = issue.type === 'epic' ? 'Épico' : 
+                            issue.type === 'story' ? 'História' : 
+                            issue.type === 'task' ? 'Tarefa' : 'Bug';
+            const storyPointsText = issue.storyPoints ? ` • ${issue.storyPoints} pts` : '';
+            
+            // Buscar parent se existir
+            let parentInfo = '';
+            if (issue.parentId) {
+                const parent = state.issues.find(i => i.id === issue.parentId);
+                if (parent) {
+                    const parentProject = state.projects.find(p => p.id === parent.projectId);
+                    const parentKey = `${parentProject.key}-${parent.number}`;
+                    const parentTypeLabel = parent.type === 'epic' ? 'Épico' : parent.type === 'story' ? 'História' : '';
+                    parentInfo = `<div style="font-size: 12px; color: var(--primary-color); margin-top: 4px;">
+                        <i class="fas fa-level-up-alt" style="transform: rotate(90deg);"></i> ${parentTypeLabel}: ${parentKey}
+                    </div>`;
+                }
+            }
+
+            return `
+                <div class="sprint-concluida-item" style="padding: 16px; margin-bottom: 12px; background: var(--bg-secondary); border-radius: 6px; border-left: 4px solid var(--success);">
+                    <div style="display: flex; align-items: flex-start; gap: 12px;">
+                        <span class="issue-type ${issue.type}" style="flex-shrink: 0;">
+                            <i class="fas fa-${getIssueTypeIcon(issue.type)}"></i>
+                        </span>
+                        <div style="flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                <span class="issue-key" style="font-weight: 600;">${issueKey}</span>
+                                <span style="font-size: 12px; color: var(--text-secondary);">${typeLabel}${storyPointsText}</span>
+                            </div>
+                            <div style="font-weight: 600; margin-bottom: 4px;">${escapeHtml(issue.title)}</div>
+                            ${parentInfo}
+                            ${issue.description ? `<div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">${escapeHtml(issue.description.substring(0, 150))}${issue.description.length > 150 ? '...' : ''}</div>` : ''}
+                            <div style="display: flex; align-items: center; gap: 12px; margin-top: 8px; font-size: 12px;">
+                                <span class="issue-priority ${issue.priority}">${getPriorityLabel(issue.priority)}</span>
+                                ${issue.assignee ? `<span style="color: var(--text-secondary);"><i class="fas fa-user"></i> ${escapeHtml(issue.assignee)}</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // Abrir modal
+    const modal = document.getElementById('sprint-concluidas-modal');
+    if (modal) {
+        modal.classList.add('active');
+    }
+};
+
+// Fechar modal de tarefas concluídas
+function closeSprintConcluidasModal() {
+    const modal = document.getElementById('sprint-concluidas-modal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
 }
 
 // Abrir modal de sprint
@@ -2642,9 +2782,12 @@ async function handleCloseSprint() {
     
     // Remover sprintId dos itens não concluídos
     const sprintItems = state.issues.filter(i => i.sprintId === activeSprint.id);
+    const backlogKey = getBacklogStageKey();
     sprintItems.forEach(issue => {
         if (issue.status !== 'done') {
             issue.sprintId = null;
+            // Voltar o status para a primeira etapa (backlog)
+            issue.status = backlogKey;
             issue.updatedAt = new Date().toISOString();
         }
     });
@@ -2658,10 +2801,23 @@ async function handleCloseSprint() {
         }
     }
 
+    // Salvar issues atualizadas no Supabase
+    const issuesToUpdate = sprintItems.filter(i => i.status !== 'done');
+    if (typeof saveIssue === 'function' && isSupabaseAvailable() && issuesToUpdate.length > 0) {
+        try {
+            await Promise.all(issuesToUpdate.map(issue => saveIssue(issue)));
+        } catch (error) {
+            console.error('Erro ao salvar issues após fechar sprint:', error);
+        }
+    }
+
     saveData();
     renderSprints();
     if (state.currentView === 'backlog') {
         renderBacklog();
+    }
+    if (state.currentView === 'boards') {
+        renderBoard();
     }
     updateBacklogHeader();
 }
@@ -2680,9 +2836,12 @@ async function handleDeleteSprint() {
 
     // Remover vínculo da sprint das issues
     const sprintItems = state.issues.filter(i => i.sprintId === activeSprint.id);
+    const backlogKey = getBacklogStageKey();
     sprintItems.forEach(issue => {
         issue.sprintId = null;
         issue.sprintOrder = undefined;
+        // Voltar o status para a primeira etapa (backlog)
+        issue.status = backlogKey;
         issue.updatedAt = new Date().toISOString();
     });
 
@@ -2850,7 +3009,7 @@ async function handleAddItemsToSprint() {
 }
 
 // Remover item da sprint (função global)
-window.removeFromSprint = function(issueId) {
+window.removeFromSprint = async function(issueId) {
     const issue = state.issues.find(i => i.id === issueId);
     if (!issue) return;
 
@@ -2861,8 +3020,12 @@ window.removeFromSprint = function(issueId) {
         return;
     }
 
+    const backlogKey = getBacklogStageKey();
+
     issue.sprintId = null;
     issue.sprintOrder = undefined;
+    // Voltar o status para a primeira etapa (backlog)
+    issue.status = backlogKey;
     issue.updatedAt = new Date().toISOString();
     
     // Reordenar itens restantes
@@ -2879,11 +3042,26 @@ window.removeFromSprint = function(issueId) {
         item.updatedAt = new Date().toISOString();
     });
     
+    // Persistir no Supabase, se disponível
+    if (typeof saveIssue === 'function' && isSupabaseAvailable()) {
+        try {
+            await Promise.all([
+                saveIssue(issue),
+                ...remainingItems.map(i => saveIssue(i))
+            ]);
+        } catch (error) {
+            console.error('Erro ao salvar remoção da sprint no Supabase:', error);
+        }
+    }
+
     saveData();
     renderActiveSprint(activeSprint);
     
     if (state.currentView === 'backlog') {
         renderBacklog();
+    }
+    if (state.currentView === 'boards') {
+        renderBoard();
     }
 };
 
